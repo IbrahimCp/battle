@@ -1,0 +1,4 @@
+.venv
+.claude
+.env
+backend/app/.env
