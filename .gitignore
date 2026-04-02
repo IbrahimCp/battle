@@ -2,3 +2,6 @@
 .claude
 .env
 backend/app/.env
+__pycache__/
+*.py[cod]
+*$py.class
