@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, status
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, status
 
 from app.database.core import DbSession
 from app.auth.service import get_current_user
@@ -26,30 +26,26 @@ def get_problem(
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
 
-    return ProblemRead.model_validate(problem).model_copy(update={
-        "statement": problem_service.get_statement(problem),
-        "test_count": problem_service.get_test_count(problem),
-    })
+    statement = problem_service.get_statement(problem)
+    return ProblemRead.model_validate(problem).model_copy(update={"statement": statement})
 
 
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
-def upload_problem(
+async def upload_problem(
     db_session: DbSession,
-    file: UploadFile = File(...),
+    file: UploadFile,
     current_user=Depends(get_current_user),
 ):
     if not file.filename or not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="Upload must be a .zip file")
 
     try:
-        zip_bytes = file.file.read()
+        zip_bytes = await file.read()
         problem = problem_service.import_polygon_package(db_session, zip_bytes)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Invalid polygon package")
 
-    return ProblemRead.model_validate(problem).model_copy(update={
-        "test_count": problem_service.get_test_count(problem),
-    })
+    return ProblemRead.model_validate(problem)
 
 
 @router.delete("/{problem_id}")
